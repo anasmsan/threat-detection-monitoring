@@ -1,0 +1,35 @@
+filebeat.inputs:
+  # Logs applicatifs de la webapp : déjà en JSON structuré (voir webapp/app.py),
+  # Filebeat n'a donc besoin d'aucun "grok"/parsing complexe : chaque champ
+  # JSON devient directement un champ Elasticsearch.
+  - type: log
+    id: webapp-access
+    enabled: true
+    paths:
+      - /var/log/webapp/access.log
+    json.keys_under_root: true
+    json.add_error_key: true
+    fields:
+      log_source: webapp
+    fields_under_root: true
+
+  # Logs d'authentification SSH (format syslog standard, texte brut) : le
+  # parsing (extraire l'IP, le nom d'utilisateur, succès/échec) est fait côté
+  # Python dans le moteur de détection plutôt que dans un pipeline Elasticsearch
+  # dédié, pour garder l'architecture de cette démonstration plus simple.
+  - type: log
+    id: ssh-auth
+    enabled: true
+    paths:
+      - /var/log/ssh/auth.log
+    fields:
+      log_source: ssh
+    fields_under_root: true
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  index: "security-logs-%{+yyyy.MM.dd}"
+
+setup.template.name: "security-logs"
+setup.template.pattern: "security-logs-*"
+setup.ilm.enabled: false

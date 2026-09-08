@@ -1,0 +1,21 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+
+  # Grafana sait aussi interroger directement Elasticsearch : un seul outil
+  # (Grafana) sert ainsi de tableau de bord unique à la fois pour les
+  # métriques d'infrastructure (Prometheus) et les logs de sécurité
+  # (Elasticsearch), plutôt que de jongler entre Grafana et Kibana.
+  - name: Elasticsearch-security-logs
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    database: "security-logs-*"
+    jsonData:
+      timeField: "@timestamp"
+      esVersion: "8.0.0"

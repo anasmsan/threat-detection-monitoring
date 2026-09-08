@@ -1,0 +1,73 @@
+=== docker compose ps ===
+NAME                                          IMAGE                                                  COMMAND                  SERVICE         CREATED          STATUS                    PORTS
+threat-detection-monitoring-cadvisor-1        gcr.io/cadvisor/cadvisor:v0.49.1                       "/usr/bin/cadvisor -…"   cadvisor        9 minutes ago    Up 9 minutes (healthy)    0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+threat-detection-monitoring-elasticsearch-1   docker.elastic.co/elasticsearch/elasticsearch:8.15.3   "/bin/tini -- /usr/l…"   elasticsearch   17 minutes ago   Up 17 minutes (healthy)   0.0.0.0:9200->9200/tcp, [::]:9200->9200/tcp, 9300/tcp
+threat-detection-monitoring-filebeat-1        docker.elastic.co/beats/filebeat:8.15.3                "/usr/bin/tini -- /u…"   filebeat        16 minutes ago   Up 16 minutes             
+threat-detection-monitoring-grafana-1         grafana/grafana:11.2.0                                 "/run.sh"                grafana         9 minutes ago    Up 3 minutes              0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+threat-detection-monitoring-kibana-1          docker.elastic.co/kibana/kibana:8.15.3                 "/bin/tini -- /usr/l…"   kibana          16 minutes ago   Up 16 minutes             0.0.0.0:5601->5601/tcp, [::]:5601->5601/tcp
+threat-detection-monitoring-node-exporter-1   prom/node-exporter:v1.8.2                              "/bin/node_exporter"     node-exporter   9 minutes ago    Up 9 minutes              0.0.0.0:9100->9100/tcp, [::]:9100->9100/tcp
+threat-detection-monitoring-prometheus-1      prom/prometheus:v2.54.1                                "/bin/prometheus --c…"   prometheus      9 minutes ago    Up 9 minutes              0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp
+threat-detection-monitoring-ssh-target-1      threat-detection-monitoring-ssh-target                 "/entrypoint.sh"         ssh-target      9 minutes ago    Up 9 minutes              0.0.0.0:2222->22/tcp, [::]:2222->22/tcp
+threat-detection-monitoring-webapp-1          threat-detection-monitoring-webapp                     "uvicorn app:app --h…"   webapp          9 minutes ago    Up 9 minutes              0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+
+=== Détection réelle (7 alertes trouvées) ===
+=== 7 alerte(s) détectée(s) ===
+
+[CRITICAL] T1110 - Brute Force
+   Règle      : ssh_brute_force
+   IP source  : 172.18.0.1
+   Détail     : 12 échecs d'authentification SSH depuis 172.18.0.1, PUIS connexion réussie : compte probablement compromis.
+
+[MEDIUM] T1595 - Active Scanning
+   Règle      : web_path_scanning
+   IP source  : 203.0.113.66
+   Détail     : 26 requêtes vers des chemins inexistants (404) depuis 203.0.113.66 : comportement typique d'un outil de reconnaissance (ex: gobuster/dirbuster).
+
+[CRITICAL] T1190 - Exploit Public-Facing Application
+   Règle      : injection_attempt
+   IP source  : 203.0.113.77
+   Détail     : Payload suspect détecté dans une requête vers /search : q=' OR '1'='1
+
+[CRITICAL] T1190 - Exploit Public-Facing Application
+   Règle      : injection_attempt
+   IP source  : 203.0.113.77
+   Détail     : Payload suspect détecté dans une requête vers /search : q=' UNION SELECT username, password FROM users--
+
+[CRITICAL] T1190 - Exploit Public-Facing Application
+   Règle      : injection_attempt
+   IP source  : 203.0.113.77
+   Détail     : Payload suspect détecté dans une requête vers /search : q=1; DROP TABLE users;--
+
+[CRITICAL] T1190 - Exploit Public-Facing Application
+   Règle      : injection_attempt
+   IP source  : 203.0.113.77
+   Détail     : Payload suspect détecté dans une requête vers /search : q=../../../../etc/passwd
+
+[CRITICAL] T1190 - Exploit Public-Facing Application
+   Règle      : injection_attempt
+   IP source  : 203.0.113.77
+   Détail     : Payload suspect détecté dans une requête vers /search : q=<script>alert(document.cookie)</script>
+
+
+=== Comptage des documents indexés ===
+health status index                                          uuid                   pri rep docs.count docs.deleted store.size pri.store.size dataset.size
+yellow open   security-alerts                                tpBVKy_lSc-RYqr6FDWYig   1   1         11            0     35.6kb         35.6kb       35.6kb
+yellow open   .ds-security-logs-2026.09.08-2026.09.08-000001 d7zTMj-3QK68bZIXHpVo8A   1   1        218            0    117.3kb        117.3kb      117.3kb
+
+=== Cibles Prometheus ===
+cadvisor -> up
+node-exporter -> up
+prometheus -> up
+webapp -> up
+
+=== Tests automatisés ===
+collecting ... collected 6 items
+
+tests/test_rules.py::test_ssh_brute_force_triggers_above_threshold PASSED [ 16%]
+tests/test_rules.py::test_ssh_brute_force_flags_compromise_when_followed_by_success PASSED [ 33%]
+tests/test_rules.py::test_ssh_brute_force_does_not_trigger_below_threshold PASSED [ 50%]
+tests/test_rules.py::test_web_scanning_triggers_on_many_404s_from_same_ip PASSED [ 66%]
+tests/test_rules.py::test_injection_detected_even_when_url_encoded_with_plus_signs PASSED [ 83%]
+tests/test_rules.py::test_no_false_positive_on_legitimate_query PASSED   [100%]
+
+============================== 6 passed in 0.08s ===============================
